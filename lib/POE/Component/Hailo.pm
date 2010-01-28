@@ -55,6 +55,9 @@ sub _start {
 
 sub shutdown {
     my $self = $_[OBJECT];
+
+    $self->{hailo}->shutdown();
+
     if (defined $self->{alias}) {
         $poe_kernel->alias_remove($self->{alias});
     }
