@@ -1,0 +1,92 @@
+NAME
+    POE::Component::Hailo - A non-blocking wrapper around Hailo
+
+SYNOPSIS
+     use POE;
+     use POE::Component::Hailo;
+
+     POE::Session->create(
+         package_states => [
+             main => [ qw(_start learned replied) ],
+         ],
+     );
+
+     $poe_kernel->run();
+
+     sub _start {
+         my $heap = $_[HEAP];
+         $heap->{hailo} = POE::Component::Hailo->spawn(
+             alias      => 'hailo',
+             Hailo_args => {
+                 order          => 5,
+                 storage_class  => 'SQLite',
+                 brain_resource => 'hailo.sqlite',
+             },
+         );
+     
+         $poe_kernel->post(hailo => learn => 'This is a sentence');
+     }
+
+     sub learned {
+         my $error = $_[ARG0];
+         print "Learned" if !defined $error;
+     }
+ 
+     sub replied {
+         my $reply = $_[ARG0];
+         die "Didn't get a reply" if !defined $reply;
+         print "Got reply: $reply\n";
+     }
+
+DESCRIPTION
+    POE::Component::Hailo is a POE component that provides a non-blocking
+    wrapper around Hailo. It accepts the events listed under "INPUT" and
+    emits the events listed under "OUTPUT".
+
+METHODS
+  "spawn"
+    This is the constructor. It takes the following arguments:
+
+    'alias', an optional alias for the component's session.
+
+    'Hailo_args', a hash reference of arguments to pass to Hailo's
+    constructor.
+
+METHODS
+  "session_id"
+    Takes no arguments. Returns the POE Session ID of the component.
+
+INPUT
+    The POE events this component will accept.
+
+  "learn"
+  "train"
+  "reply"
+  "learn_reply"
+    All these events take two arguments. The first is an array reference of
+    arguments which will be passed to the Hailo method of the same name. The
+    second (optional) is a hash reference You'll get this hash reference
+    back with corresponding event listen under "OUTPUT".
+
+  "shutdown"
+    Takes no arguments. Terminates the component.
+
+OUTPUT
+    The component will post these events to your session.
+
+  "hailo_learned"
+  "hailo_trained"
+  "hailo_replied"
+  "hailo_learn_replied"
+    ARG0 is an array reference of arguments returned by the underlying Hailo
+    method. ARG1 is the context hashref you provided (if any).
+
+AUTHOR
+    Hinrik Örn Sigurðsson, hinrik.sig@gmail.com
+
+LICENSE AND COPYRIGHT
+    Copyright 2010 Hinrik Örn Sigurðsson
+
+    This program is free software, you can redistribute it and/or modify it
+    under the same terms as Perl itself.
+
