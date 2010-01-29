@@ -20,7 +20,7 @@ sub spawn {
     
     POE::Session->create(
         object_states => [
-            $self => [qw(_start _result shutdown)],
+            $self => [qw(_start _result shutdown _sig_DIE)],
             $self => {
                 learn       => '_method_wrapper',
                 train       => '_method_wrapper',
@@ -34,8 +34,10 @@ sub spawn {
 }
 
 sub _start {
-    my ($session, $self) = @_[SESSION, OBJECT];
+    my ($kernel, $session, $self) = @_[KERNEL, SESSION, OBJECT];
     $self->{session_id} = $session->ID();
+    
+    $kernel->sig(DIE => '_sig_DIE');
 
     if ($self->{alias}) {
         $poe_kernel->alias_set($self->{alias});
@@ -51,6 +53,15 @@ sub _start {
         verbose        => 1,
     );
   
+    return;
+}
+
+sub _sig_DIE {
+    my ($kernel, $self, $ex) = @_[KERNEL, OBJECT, ARG1];
+    chomp $ex->{error_str};
+    warn "Error: Event $ex->{event} in $ex->{dest_session} raised exception:\n";
+    warn "  $ex->{error_str}\n";
+    $kernel->sig_handled();
     return;
 }
 
