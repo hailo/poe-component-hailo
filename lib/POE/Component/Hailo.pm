@@ -22,9 +22,10 @@ sub spawn {
         object_states => [
             $self => [qw(_start _result shutdown)],
             $self => {
-                learn => '_method_wrapper',
-                train => '_method_wrapper',
-                reply => '_method_wrapper',
+                learn       => '_method_wrapper',
+                train       => '_method_wrapper',
+                reply       => '_method_wrapper',
+                learn_reply => '_method_wrapper',
             },
         ],
     );
@@ -68,7 +69,7 @@ sub shutdown {
 }
 
 sub _method_wrapper {
-    my ($self, $sender, $event, $text, $context)
+    my ($self, $sender, $event, $args, $context)
         = @_[OBJECT, SENDER, STATE, ARG0, ARG1];
 
     $context = {
@@ -85,7 +86,7 @@ sub _method_wrapper {
                     context   => $context,
                 },
             },
-            $text,
+            @$args,
     );
     return;
 }
