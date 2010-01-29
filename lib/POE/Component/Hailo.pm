@@ -92,7 +92,7 @@ sub _method_wrapper {
 }
 
 sub _result {
-    my ($ref, $result) = @_[ARG0, ARG1];
+    my ($ref, @results) = @_[ARG0..$#_];
 
     if ($ref->{error}) {
         # do something?
@@ -102,7 +102,7 @@ sub _result {
     $poe_kernel->post(
         $recipient,
         $context->{response},
-        $result,
+        \@results,
         $context->{user_context}
     );
     
