@@ -3,7 +3,6 @@ MANIFEST
 README
 Changes
 lib/POE/Component/Hailo.pm
-example/test.pl
 t/01_compile.t
 xt/01_pod.t
 xt/02_pod_coverage.t
