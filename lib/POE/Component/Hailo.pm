@@ -136,12 +136,14 @@ POE::Component::Hailo - A non-blocking wrapper around L<Hailo|Hailo>
 
 =head1 SYNOPSIS
 
+ use strict;
+ use warnings;
  use POE;
  use POE::Component::Hailo;
 
  POE::Session->create(
      package_states => [
-         main => [ qw(_start learned replied) ],
+         main => [ qw(_start hailo_learned hailo_replied) ],
      ],
  );
 
@@ -157,17 +159,16 @@ POE::Component::Hailo - A non-blocking wrapper around L<Hailo|Hailo>
              brain_resource => 'hailo.sqlite',
          },
      );
-     
-     $poe_kernel->post(hailo => learn => 'This is a sentence');
+
+     $poe_kernel->post(hailo => learn => ['This is a sentence']);
  }
 
- sub learned {
-     my $error = $_[ARG0];
-     print "Learned" if !defined $error;
+ sub hailo_learned {
+     $poe_kernel->post(hailo => reply => ['This']);
  }
- 
- sub replied {
-     my $reply = $_[ARG0];
+
+ sub hailo_replied {
+     my $reply = $_[ARG0]->[0];
      die "Didn't get a reply" if !defined $reply;
      print "Got reply: $reply\n";
  }
