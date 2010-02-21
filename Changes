@@ -1,3 +1,6 @@
+0.04
+    - Pod fix: remove duplicate METHODS section
+
 0.03 Sun Feb 21 05:59:18 GMT 2010
     - Support Hailo->save()
 

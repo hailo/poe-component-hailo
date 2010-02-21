@@ -255,8 +255,6 @@ Defaults to false.
 B<'Hailo_args'>, a hash reference of arguments to pass to L<Hailo|Hailo>'s
 constructor.
 
-=head1 METHODS
-
 =head2 C<session_id>
 
 Takes no arguments. Returns the POE Session ID of the component.
