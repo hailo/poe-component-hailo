@@ -1,0 +1,7 @@
+^Makefile$
+^POE-Component-Hailo-
+\.old$
+\.bak$
+\.git
+^pm_to_blib$
+^blib/

@@ -1,8 +1,10 @@
 use strict;
 use warnings;
+use 5.010;
 use inc::Module::Install '0.92';
 
 name           ('POE-Component-Hailo');
+perl_version   ('5.010');
 author         ('Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>');
 abstract_from  ('lib/POE/Component/Hailo.pm');
 version_from   ('lib/POE/Component/Hailo.pm');
@@ -12,9 +14,9 @@ githubmeta     ();
 bugtracker     ('http://github.com/hinrik/poe-component-hailo/issues');
 resources      (Ratings => 'http://cpanratings.perl.org/d/POE-Component-Hailo');
 
-requires       ('Hailo'                   => '0');
-requires       ('POE'                     => '0');
-requires       ('POE::Component::Generic' => '0');
+requires       ('Hailo'     => '0.15');
+requires       ('POE'       => '0');
+requires       ('Try::Tiny' => '0.03');
 
 tests_recursive();
 test_requires  ('Test::More'   => '0');

@@ -1,5 +1,7 @@
 0.02
     - Some Pod fixes
+    - Manage our own child process with POE::Wheel::Run instead of relying
+      on POE::Component::Generic
 
 0.01 Fri Jan 29 00:43:55 GMT 2010
     - First CPAN release

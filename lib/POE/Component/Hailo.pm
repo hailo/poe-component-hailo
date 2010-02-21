@@ -1,33 +1,47 @@
 package POE::Component::Hailo;
 
+use 5.010;
 use strict;
 use warnings;
-use Carp;
-use POE;
-use POE::Component::Generic;
+use Carp 'croak';
+use Hailo;
+use POE qw(Wheel::Run Filter::Reference);
+use Try::Tiny;
 
 our $VERSION = '0.01';
 
 sub spawn {
     my ($package, %args) = @_;
+
+    croak "Hailo_args parameter missing" if ref $args{Hailo_args} ne 'HASH';
+    my $options = delete $args{options};
     my $self = bless \%args, $package;
+
     $self->{response} = {
         learn       => 'hailo_learned',
         train       => 'hailo_trained',
         reply       => 'hailo_replied',
         learn_reply => 'hailo_learn_replied',
+        stats       => 'hailo_stats',
     };
-    
+
     POE::Session->create(
         object_states => [
-            $self => [qw(_start _result shutdown _sig_DIE)],
+            $self => [qw(
+                _start
+                shutdown
+                _sig_DIE
+                _sig_chld
+                _child_closed
+                _child_error
+                _child_stderr
+                _child_stdout
+            )],
             $self => {
-                learn       => '_method_wrapper',
-                train       => '_method_wrapper',
-                reply       => '_method_wrapper',
-                learn_reply => '_method_wrapper',
-            },
+                map { +$_ => '_hailo_method' } keys %{ $self->{response } },
+            }
         ],
+        (ref $options eq 'HASH' ? (options => $options) : ()),
     );
 
     return $self;
@@ -36,23 +50,27 @@ sub spawn {
 sub _start {
     my ($kernel, $session, $self) = @_[KERNEL, SESSION, OBJECT];
     $self->{session_id} = $session->ID();
-    
     $kernel->sig(DIE => '_sig_DIE');
 
     if ($self->{alias}) {
-        $poe_kernel->alias_set($self->{alias});
+        $kernel->alias_set($self->{alias});
     }
     else {
-        $poe_kernel->refcount_increment($self->{session_id}, __PACKAGE__);
+        $kernel->refcount_increment($self->{session_id}, __PACKAGE__);
     }
 
-    $self->{hailo} = POE::Component::Generic->spawn(
-        package        => 'Hailo',
-        object_options => [ %{ $self->{Hailo_args} || { }} ],
-        methods        => [ qw(learn train reply learn_reply) ],
-        verbose        => 1,
+    $self->{wheel} = POE::Wheel::Run->new(
+        Program      => \&_main,
+        ProgramArgs  => [ %{ $self->{Hailo_args} } ],
+        ErrorEvent   => '_child_error',
+        CloseEvent   => '_child_closed',
+        StdoutEvent  => '_child_stdout', 
+        StderrEvent  => '_child_stderr',
+        StdioFilter  => POE::Filter::Reference->new(),
+        ($^O eq 'MSWin32' ? (CloseOnCall => 0) : (CloseOnCall => 1)),
     );
-  
+
+    $kernel->sig_child( $self->{wheel}->PID, '_sig_chld' );
     return;
 }
 
@@ -65,68 +83,111 @@ sub _sig_DIE {
     return;
 }
 
-sub shutdown {
-    my $self = $_[OBJECT];
-
-    $self->{hailo}->shutdown();
-
-    if (defined $self->{alias}) {
-        $poe_kernel->alias_remove($self->{alias});
-    }
-    else {
-        $poe_kernel->refcount_decrement($self->{session_id}, __PACKAGE__);
-    }
-    return;
-}
-
-sub _method_wrapper {
-    my ($self, $sender, $event, $args, $context)
-        = @_[OBJECT, SENDER, STATE, ARG0, ARG1];
-
-    $context = {
-        user_context => $context,
-        response     => $self->{response}{$event},
-    };
-    
-    $self->{hailo}->yield(
-        $event =>
-            {
-                event => '_result',
-                data => {
-                    recipient => $sender->ID(),
-                    context   => $context,
-                },
-            },
-            @$args,
-    );
-    return;
-}
-
-sub _result {
-    my ($ref, @results) = @_[ARG0..$#_];
-
-    if ($ref->{error}) {
-        # do something?
-    }
-    
-    my ($recipient, $context) = @{ $ref->{data} }{qw(recipient context)};
-    $poe_kernel->post(
-        $recipient,
-        $context->{response},
-        \@results,
-        $context->{user_context}
-    );
-    
-    return;
-}
-
 sub session_id {
-    my ($self) = @_;
-    return $self->{session_id};
+    return $_[0]->{session_id};
+}
+
+sub _hailo_method {
+    my ($kernel, $self, $state, $args, $context)
+        = @_[KERNEL, OBJECT, STATE, ARG0, ARG1];
+    my $sender = $_[SENDER]->ID();
+
+    return if $self->{shutdown};
+    return if !defined $self->{wheel};
+
+    $args //= [ ];
+    $context = { %{ $context // { } } };
+    my $request = {
+        args    => $args,
+        context => $context,
+        method  => $state,
+        sender  => $sender,
+        event   => $self->{response}{$state},
+    };
+
+    $kernel->refcount_increment($sender, __PACKAGE__);
+    $self->{wheel}->put($request);
+
+    return;
+}
+
+sub _sig_chld {
+    $_[KERNEL]->sig_handled();
+    return;
+}
+
+sub _child_closed {
+    delete $_[OBJECT]->{wheel};
+    return;
+}
+
+sub _child_error {
+    delete $_[OBJECT]->{wheel};
+    return;
+}
+
+sub _child_stderr {
+    my ($kernel, $self, $input) = @_[KERNEL, OBJECT, ARG0];
+    warn "$input\n" if $self->{debug};
+    return;
+}
+
+sub _child_stdout {
+    my ($kernel, $self, $input) = @_[KERNEL, OBJECT, ARG0];
+    $kernel->post(@$input{qw(sender event result context)});
+    $kernel->refcount_decrement($input->{sender}, __PACKAGE__);
+    return;
+}
+
+sub shutdown {
+    my ($kernel, $self) = @_[KERNEL, OBJECT];
+
+    $kernel->alias_remove($_) for $kernel->alias_list();
+    if (!defined $self->{alias}) {
+        $kernel->refcount_decrement($self->{session_id}, __PACKAGE__);
+    }
+
+    $self->{shutdown} = 1;
+    $self->{wheel}->shutdown_stdin;
+    return;
+}
+
+sub _main {
+    my %hailo_args = @_;
+
+    if ($^O eq 'MSWin32') {
+        binmode STDIN;
+        binmode STDOUT;
+    }
+
+    my $hailo;
+    try {
+        $hailo = Hailo->new(%hailo_args);
+    }
+    catch {
+        chomp $_;
+        die "$_\n";
+    };
+
+    my $raw;
+    my $size = 4096;
+    my $filter = POE::Filter::Reference->new();
+
+    while (sysread STDIN, $raw, $size) {
+        my $requests = $filter->get([$raw]);
+        for my $req (@$requests) {
+            my $method = $req->{method};
+            $req->{result} = [$hailo->$method(@{ $req->{args} })];
+            my $response = $filter->put([$req]);
+            print @$response;
+        }
+    }
+
+    $hailo->DESTROY;
+    return;
 }
 
 1;
-__END__
 
 =encoding utf8
 
@@ -138,39 +199,39 @@ POE::Component::Hailo - A non-blocking wrapper around L<Hailo|Hailo>
 
  use strict;
  use warnings;
- use POE;
- use POE::Component::Hailo;
+ use POE qw(Component::Hailo);
 
  POE::Session->create(
      package_states => [
-         main => [ qw(_start hailo_learned hailo_replied) ],
+         (__PACKAGE__) => [ qw(_start hailo_learned hailo_replied) ],
      ],
  );
 
- $poe_kernel->run();
+ POE::Kernel->run;
 
  sub _start {
-     my $heap = $_[HEAP];
-     $heap->{hailo} = POE::Component::Hailo->spawn(
+     POE::Component::Hailo->spawn(
          alias      => 'hailo',
          Hailo_args => {
-             order          => 5,
              storage_class  => 'SQLite',
              brain_resource => 'hailo.sqlite',
          },
      );
 
-     $poe_kernel->post(hailo => learn => ['This is a sentence']);
+     POE::Kernel->post(hailo => learn =>
+         ['This is a sentence'],
+     );
  }
 
  sub hailo_learned {
-     $poe_kernel->post(hailo => reply => ['This']);
+     POE::Kernel->post(hailo => reply => ['This']);
  }
 
  sub hailo_replied {
      my $reply = $_[ARG0]->[0];
      die "Didn't get a reply" if !defined $reply;
      print "Got reply: $reply\n";
+     POE::Kernel->post(hailo => 'shutdown');
  }
 
 =head1 DESCRIPTION
@@ -187,6 +248,9 @@ This is the constructor. It takes the following arguments:
 
 B<'alias'>, an optional alias for the component's session.
 
+B<'debug'>, set to a true value if you want debug output to be printed.
+Defaults to false.
+
 B<'Hailo_args'>, a hash reference of arguments to pass to L<Hailo|Hailo>'s
 constructor.
 
@@ -198,7 +262,9 @@ Takes no arguments. Returns the POE Session ID of the component.
 
 =head1 INPUT
 
-The POE events this component will accept.
+This component reacts to the following POE events:
+
+=head2 C<stats>
 
 =head2 C<learn>
 
@@ -210,8 +276,8 @@ The POE events this component will accept.
 
 All these events take two arguments. The first is an array reference of
 arguments which will be passed to the L<Hailo|Hailo> method of the same
-name. The second (optional) is a hash reference You'll get this hash
-reference back with corresponding event listen under L</OUTPUT>.
+name. The second (optional) is a hash reference. You'll get this hash
+reference back with the corresponding event listed under L</OUTPUT>.
 
 =head2 C<shutdown>
 
@@ -219,7 +285,9 @@ Takes no arguments. Terminates the component.
 
 =head1 OUTPUT
 
-The component will post these events to your session.
+The component will post the following event to your session:
+
+=head2 C<hailo_stats>
 
 =head2 C<hailo_learned>
 
@@ -229,8 +297,8 @@ The component will post these events to your session.
 
 =head2 C<hailo_learn_replied>
 
-ARG0 is an array reference of arguments returned by the underlying
-L<Hailo|Hailo> method. ARG1 is the context hashref you provided (if any).
+C<ARG0> is an array reference of arguments returned by the underlying
+L<Hailo|Hailo> method. C<ARG1> is the context hashref you provided (if any).
 
 =head1 AUTHOR
 

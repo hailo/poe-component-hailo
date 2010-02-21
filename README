@@ -4,39 +4,39 @@ NAME
 SYNOPSIS
      use strict;
      use warnings;
-     use POE;
-     use POE::Component::Hailo;
+     use POE qw(Component::Hailo);
 
      POE::Session->create(
          package_states => [
-             main => [ qw(_start hailo_learned hailo_replied) ],
+             (__PACKAGE__) => [ qw(_start hailo_learned hailo_replied) ],
          ],
      );
 
-     $poe_kernel->run();
+     POE::Kernel->run;
 
      sub _start {
-         my $heap = $_[HEAP];
-         $heap->{hailo} = POE::Component::Hailo->spawn(
+         POE::Component::Hailo->spawn(
              alias      => 'hailo',
              Hailo_args => {
-                 order          => 5,
                  storage_class  => 'SQLite',
                  brain_resource => 'hailo.sqlite',
              },
          );
 
-         $poe_kernel->post(hailo => learn => ['This is a sentence']);
+         POE::Kernel->post(hailo => learn =>
+             ['This is a sentence'],
+         );
      }
 
      sub hailo_learned {
-         $poe_kernel->post(hailo => reply => ['This']);
+         POE::Kernel->post(hailo => reply => ['This']);
      }
 
      sub hailo_replied {
          my $reply = $_[ARG0]->[0];
          die "Didn't get a reply" if !defined $reply;
          print "Got reply: $reply\n";
+         POE::Kernel->post(hailo => 'shutdown');
      }
 
 DESCRIPTION
@@ -50,6 +50,9 @@ METHODS
 
     'alias', an optional alias for the component's session.
 
+    'debug', set to a true value if you want debug output to be printed.
+    Defaults to false.
+
     'Hailo_args', a hash reference of arguments to pass to Hailo's
     constructor.
 
@@ -58,29 +61,31 @@ METHODS
     Takes no arguments. Returns the POE Session ID of the component.
 
 INPUT
-    The POE events this component will accept.
+    This component reacts to the following POE events:
 
+  "stats"
   "learn"
   "train"
   "reply"
   "learn_reply"
     All these events take two arguments. The first is an array reference of
     arguments which will be passed to the Hailo method of the same name. The
-    second (optional) is a hash reference You'll get this hash reference
-    back with corresponding event listen under "OUTPUT".
+    second (optional) is a hash reference. You'll get this hash reference
+    back with the corresponding event listed under "OUTPUT".
 
   "shutdown"
     Takes no arguments. Terminates the component.
 
 OUTPUT
-    The component will post these events to your session.
+    The component will post the following event to your session:
 
+  "hailo_stats"
   "hailo_learned"
   "hailo_trained"
   "hailo_replied"
   "hailo_learn_replied"
-    ARG0 is an array reference of arguments returned by the underlying Hailo
-    method. ARG1 is the context hashref you provided (if any).
+    "ARG0" is an array reference of arguments returned by the underlying
+    Hailo method. "ARG1" is the context hashref you provided (if any).
 
 AUTHOR
     Hinrik Örn Sigurðsson, hinrik.sig@gmail.com
