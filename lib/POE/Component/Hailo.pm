@@ -8,7 +8,7 @@ use Hailo;
 use POE qw(Wheel::Run Filter::Reference);
 use Try::Tiny;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 sub spawn {
     my ($package, %args) = @_;
