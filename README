@@ -63,11 +63,12 @@ METHODS
 INPUT
     This component reacts to the following POE events:
 
-  "stats"
   "learn"
   "train"
   "reply"
   "learn_reply"
+  "stats"
+  "save"
     All these events take two arguments. The first is an array reference of
     arguments which will be passed to the Hailo method of the same name. The
     second (optional) is a hash reference. You'll get this hash reference
@@ -79,11 +80,12 @@ INPUT
 OUTPUT
     The component will post the following event to your session:
 
-  "hailo_stats"
   "hailo_learned"
   "hailo_trained"
   "hailo_replied"
   "hailo_learn_replied"
+  "hailo_stats"
+  "hailo_saved"
     "ARG0" is an array reference of arguments returned by the underlying
     Hailo method. "ARG1" is the context hashref you provided (if any).
 

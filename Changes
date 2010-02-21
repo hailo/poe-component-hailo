@@ -1,3 +1,6 @@
+0.03
+    - Support Hailo->save()
+
 0.02 Sun Feb 21 02:51:38 GMT 2010
     - Some Pod fixes
     - Manage our own child process with POE::Wheel::Run instead of relying

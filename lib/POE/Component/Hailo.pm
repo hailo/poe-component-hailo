@@ -23,6 +23,7 @@ sub spawn {
         reply       => 'hailo_replied',
         learn_reply => 'hailo_learn_replied',
         stats       => 'hailo_stats',
+        save        => 'hailo_saved',
     };
 
     POE::Session->create(
@@ -264,8 +265,6 @@ Takes no arguments. Returns the POE Session ID of the component.
 
 This component reacts to the following POE events:
 
-=head2 C<stats>
-
 =head2 C<learn>
 
 =head2 C<train>
@@ -273,6 +272,10 @@ This component reacts to the following POE events:
 =head2 C<reply>
 
 =head2 C<learn_reply>
+
+=head2 C<stats>
+
+=head2 C<save>
 
 All these events take two arguments. The first is an array reference of
 arguments which will be passed to the L<Hailo|Hailo> method of the same
@@ -287,8 +290,6 @@ Takes no arguments. Terminates the component.
 
 The component will post the following event to your session:
 
-=head2 C<hailo_stats>
-
 =head2 C<hailo_learned>
 
 =head2 C<hailo_trained>
@@ -296,6 +297,10 @@ The component will post the following event to your session:
 =head2 C<hailo_replied>
 
 =head2 C<hailo_learn_replied>
+
+=head2 C<hailo_stats>
+
+=head2 C<hailo_saved>
 
 C<ARG0> is an array reference of arguments returned by the underlying
 L<Hailo|Hailo> method. C<ARG1> is the context hashref you provided (if any).
