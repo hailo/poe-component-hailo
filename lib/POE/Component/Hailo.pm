@@ -5,7 +5,6 @@ use strict;
 use warnings;
 use Carp 'croak';
 use POE qw(Wheel::Run Filter::Reference);
-use Try::Tiny;
 
 our $VERSION = '0.03';
 
@@ -32,8 +31,7 @@ sub spawn {
                 shutdown
                 _sig_DIE
                 _sig_chld
-                _child_closed
-                _child_error
+                _go_away
                 _child_stderr
                 _child_stdout
             )],
@@ -93,7 +91,6 @@ sub _hailo_method {
     my $sender = $_[SENDER]->ID();
 
     return if $self->{shutdown};
-    return if !defined $self->{wheel};
 
     $args //= [ ];
     $context = { %{ $context // { } } };
@@ -112,17 +109,10 @@ sub _hailo_method {
 }
 
 sub _sig_chld {
-    $_[KERNEL]->sig_handled();
-    return;
-}
-
-sub _child_closed {
-    delete $_[OBJECT]->{wheel};
-    return;
-}
-
-sub _child_error {
-    delete $_[OBJECT]->{wheel};
+    my ($kernel, $self) = @_[KERNEL, OBJECT];
+    $kernel->yield('shutdown') if !$self->{shutdown};
+    $kernel->yield('_go_away');
+    $kernel->sig_handled();
     return;
 }
 
@@ -140,15 +130,20 @@ sub _child_stdout {
 }
 
 sub shutdown {
+    my ($self) = $_[OBJECT];
+    $self->{shutdown} = 1;
+    $self->{wheel}->shutdown_stdin;
+    return;
+}
+
+sub _go_away {
     my ($kernel, $self) = @_[KERNEL, OBJECT];
 
+    delete $self->{wheel};
     $kernel->alias_remove($_) for $kernel->alias_list();
     if (!defined $self->{alias}) {
         $kernel->refcount_decrement($self->{session_id}, __PACKAGE__);
     }
-
-    $self->{shutdown} = 1;
-    $self->{wheel}->shutdown_stdin;
     return;
 }
 
@@ -160,21 +155,19 @@ sub _main {
         binmode STDOUT;
     }
 
-    try {
-        eval 'use Hailo';
+    eval 'use Hailo';
+    if ($@) {
+        chomp $@;
+        die "Couldn't load Hailo: $@\n"
     }
-    catch {
-        chomp $_;
-        die "Couldn't load Hailo: $_\n"
-    };
 
     my $hailo;
-    try {
+    eval {
         $hailo = Hailo->new(%hailo_args);
-    }
-    catch {
-        chomp $_;
-        die "$_\n";
+    };
+    if ($@) {
+        chomp $@;
+        die "$@\n";
     };
 
     my $raw;

@@ -16,7 +16,6 @@ resources      (Ratings => 'http://cpanratings.perl.org/d/POE-Component-Hailo');
 
 requires       ('Hailo'     => '0.15');
 requires       ('POE'       => '0');
-requires       ('Try::Tiny' => '0.03');
 
 tests_recursive();
 test_requires  ('Test::More'   => '0');

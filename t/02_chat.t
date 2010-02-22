@@ -18,6 +18,7 @@ sub _start {
             storage_class  => 'SQLite',
             brain_resource => ':memory:',
         },
+        debug => 1,
     );
 
     POE::Kernel->post(hailo => learn_reply =>
