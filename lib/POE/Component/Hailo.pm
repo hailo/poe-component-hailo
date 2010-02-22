@@ -8,7 +8,7 @@ use POE qw(Wheel::Run Filter::Reference);
 
 our $VERSION = '0.04';
 
-our $CHILD_CODE = <<'END';
+my $CHILD_CODE = <<'END';
 use strict;
 use warnings;
 use Hailo;
