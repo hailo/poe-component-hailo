@@ -50,7 +50,7 @@ sub _start {
     $self->{session_id} = $session->ID();
     $kernel->sig(DIE => '_sig_DIE');
 
-    if ($self->{alias}) {
+    if (defined $self->{alias}) {
         $kernel->alias_set($self->{alias});
     }
     else {
