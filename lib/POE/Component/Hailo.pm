@@ -88,7 +88,6 @@ sub _start {
 
     $self->{wheel} = POE::Wheel::Run->new(
         Program      => [$^X, '-e', $CHILD_CODE, %{ $self->{Hailo_args} }],
-        CloseEvent   => '_child_closed',
         StdoutEvent  => '_child_stdout', 
         StderrEvent  => '_child_stderr',
         StdioFilter  => POE::Filter::Reference->new(),
