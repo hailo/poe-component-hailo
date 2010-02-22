@@ -184,7 +184,6 @@ sub _main {
         }
     }
 
-    $hailo->DESTROY;
     return;
 }
 

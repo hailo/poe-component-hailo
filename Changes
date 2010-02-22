@@ -2,6 +2,7 @@
     - Pod fix: remove duplicate METHODS section
     - Only use Hailo in the subprocess, saves a few megabytes of memory
     - Actually complain if we can't load Hailo
+    - Don't call DESTROY manually, it's unnecessary
 
 0.03 Sun Feb 21 05:59:18 GMT 2010
     - Support Hailo->save()
