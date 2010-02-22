@@ -1,4 +1,4 @@
-0.05
+0.05 Mon Feb 22 22:33:02 GMT 2010
     - Run Hailo code as an external command instead of forking. This way our
       memory usage is constant, rather than scaling with the size of the
       parent application.
