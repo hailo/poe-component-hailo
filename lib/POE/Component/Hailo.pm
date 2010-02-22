@@ -4,7 +4,6 @@ use 5.010;
 use strict;
 use warnings;
 use Carp 'croak';
-use Hailo;
 use POE qw(Wheel::Run Filter::Reference);
 use Try::Tiny;
 
@@ -160,6 +159,14 @@ sub _main {
         binmode STDIN;
         binmode STDOUT;
     }
+
+    try {
+        eval 'use Hailo';
+    }
+    catch {
+        chomp $_;
+        die "Couldn't load Hailo: $_\n"
+    };
 
     my $hailo;
     try {
