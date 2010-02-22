@@ -14,7 +14,8 @@ use warnings;
 use Hailo;
 use POE::Filter::Reference;
 
-$|=1;
+$| = 1;
+$0 = 'hailo';
 
 if ($^O eq 'MSWin32') {
     binmode STDIN;
