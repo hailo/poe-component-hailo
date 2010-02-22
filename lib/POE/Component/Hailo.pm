@@ -6,7 +6,7 @@ use warnings;
 use Carp 'croak';
 use POE qw(Wheel::Run Filter::Reference);
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 sub spawn {
     my ($package, %args) = @_;

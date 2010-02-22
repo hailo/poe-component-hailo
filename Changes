@@ -1,4 +1,4 @@
-0.04
+0.04 Mon Feb 22 17:13:51 GMT 2010
     - Pod fix: remove duplicate METHODS section
     - Only use Hailo in the subprocess, saves a few megabytes of memory
     - Actually complain if we can't load Hailo
