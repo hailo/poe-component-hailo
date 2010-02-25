@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use Carp 'croak';
 use POE qw(Wheel::Run Filter::Reference);
+use Data::Dump 'dump';
 
 our $VERSION = '0.05';
 
@@ -22,7 +23,8 @@ if ($^O eq 'MSWin32') {
     binmode STDOUT;
 }
 
-my $hailo = Hailo->new(@ARGV);
+my $args = eval $ARGV[0];
+my $hailo = Hailo->new(%$args);
 my $filter = POE::Filter::Reference->new;
 my $raw;
 my $size = 4096;
@@ -87,7 +89,7 @@ sub _start {
     }
 
     $self->{wheel} = POE::Wheel::Run->new(
-        Program      => [$^X, '-e', $CHILD_CODE, %{ $self->{Hailo_args} }],
+        Program      => [$^X, '-e', $CHILD_CODE, dump($self->{Hailo_args})],
         StdoutEvent  => '_child_stdout', 
         StderrEvent  => '_child_stderr',
         StdioFilter  => POE::Filter::Reference->new(),
