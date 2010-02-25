@@ -14,9 +14,8 @@ githubmeta     ();
 bugtracker     ('http://github.com/hinrik/poe-component-hailo/issues');
 resources      (Ratings => 'http://cpanratings.perl.org/d/POE-Component-Hailo');
 
-requires       ('Hailo'      => '0.15');
-requires       ('POE'        => '0');
-requires       ('Data::Dump' => '0');
+requires       ('Hailo' => '0.15');
+requires       ('POE'   => '0');
 
 tests_recursive();
 test_requires  ('Test::More'   => '0');
