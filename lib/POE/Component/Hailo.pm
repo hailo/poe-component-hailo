@@ -97,7 +97,7 @@ sub _start {
         Program      => [$^X, '-e', $CHILD_CODE, $p_args],
         StdoutEvent  => '_child_stdout', 
         StderrEvent  => '_child_stderr',
-        StdioFilter  => POE::Filter::Reference->new(),
+        StdioFilter  => $filter,
         ($^O eq 'MSWin32' ? (CloseOnCall => 0) : (CloseOnCall => 1)),
     );
 
