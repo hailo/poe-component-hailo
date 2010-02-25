@@ -6,7 +6,7 @@ use warnings;
 use Carp 'croak';
 use POE qw(Wheel::Run Filter::Reference);
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 my $CHILD_CODE = <<'END';
 use strict;
