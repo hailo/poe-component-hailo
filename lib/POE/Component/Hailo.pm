@@ -99,7 +99,6 @@ sub _start {
         StdoutEvent  => '_child_stdout', 
         StderrEvent  => '_child_stderr',
         StdioFilter  => $filter,
-        ($^O eq 'MSWin32' ? (CloseOnCall => 0) : (CloseOnCall => 1)),
     );
 
     $kernel->sig_child( $self->{wheel}->PID, '_sig_chld' );
