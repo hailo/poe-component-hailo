@@ -92,9 +92,10 @@ sub _start {
     my $filter = POE::Filter::Reference->new;
     my $args = @{ $filter->put([$self->{Hailo_args}]) }[0];
     my $p_args = pack 'u*', $args;
+    my @inc = map { +'-I' => $_ } @INC;
 
     $self->{wheel} = POE::Wheel::Run->new(
-        Program      => [$^X, '-e', $CHILD_CODE, $p_args],
+        Program      => [$^X, @inc, '-e', $CHILD_CODE, $p_args],
         StdoutEvent  => '_child_stdout', 
         StderrEvent  => '_child_stderr',
         StdioFilter  => $filter,

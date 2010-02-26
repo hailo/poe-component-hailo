@@ -1,3 +1,6 @@
+0.07
+    - Pass the parent process' @INC to the subprocess
+
 0.06 Thu Feb 25 19:15:50 GMT 2010
     - Running Hailo was broken in 0.05 in cases where Hailo_args
       contained a value that was a hash, e.g. C<Hailo_args => {
