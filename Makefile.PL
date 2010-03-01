@@ -1,7 +1,11 @@
 use strict;
 use warnings;
 use 5.010;
-use inc::Module::Install '0.92';
+use inc::Module::Install;
+
+if ($inc::Module::Install::VERSION lt '0.94') {
+    die 'Module::Install is too old';
+}
 
 name           ('POE-Component-Hailo');
 perl_version   ('5.010');
@@ -24,6 +28,5 @@ author_requires('Perl::Critic'        => '1.098');
 author_requires('Test::Perl::Critic'  => '0');
 author_requires('Test::Pod'           => '1.41');
 author_requires('Test::Pod::Coverage' => '1.08');
-author_tests   ('xt');
 
 WriteAll();
