@@ -4,41 +4,10 @@ use 5.010;
 use strict;
 use warnings;
 use Carp 'croak';
+use Hailo;
 use POE qw(Wheel::Run Filter::Reference);
 
 our $VERSION = '0.07';
-
-my $CHILD_CODE = <<'END';
-use strict;
-use warnings;
-use Hailo;
-use POE::Filter::Reference;
-
-$| = 1;
-$0 = 'hailo';
-
-if ($^O eq 'MSWin32') {
-    binmode STDIN;
-    binmode STDOUT;
-}
-
-my $filter = POE::Filter::Reference->new;
-my $unpacked = unpack 'u*', $ARGV[0];
-my $args = @{ $filter->get([$unpacked]) }[0];
-my $hailo = Hailo->new(%$args);
-my $raw;
-my $size = 4096;
-
-while (sysread STDIN, $raw, $size) {
-    my $requests = $filter->get([$raw]);
-    for my $req (@$requests) {
-        my $method = $req->{method};
-        $req->{result} = [$hailo->$method(@{ $req->{args} })];
-        my $response = $filter->put([$req]);
-        print @$response;
-    }
-}
-END
 
 sub spawn {
     my ($package, %args) = @_;
@@ -89,16 +58,13 @@ sub _start {
         $kernel->refcount_increment($self->{session_id}, __PACKAGE__);
     }
 
-    my $filter = POE::Filter::Reference->new;
-    my $args = @{ $filter->put([$self->{Hailo_args}]) }[0];
-    my $p_args = pack 'u*', $args;
-    my @inc = map { +'-I' => $_ } @INC;
-
     $self->{wheel} = POE::Wheel::Run->new(
-        Program      => [$^X, @inc, '-e', $CHILD_CODE, $p_args],
-        StdoutEvent  => '_child_stdout', 
-        StderrEvent  => '_child_stderr',
-        StdioFilter  => $filter,
+        Program     => \&_main,
+        ProgramArgs => [ %{ $self->{Hailo_args} } ],
+        StdoutEvent => '_child_stdout',
+        StderrEvent => '_child_stderr',
+        StdioFilter => POE::Filter::Reference->new,
+        ( $^O eq 'MSWin32' ? ( CloseOnCall => 0 ) : ( CloseOnCall => 1 ) ),
     );
 
     $kernel->sig_child( $self->{wheel}->PID, '_sig_chld' );
@@ -180,6 +146,38 @@ sub _go_away {
     return;
 }
 
+sub _main {
+    my (%args) = @_;
+
+    if ($^O eq 'MSWin32') {
+        binmode STDIN;
+        binmode STDOUT;
+    }
+
+    my $hailo;
+    eval { $hailo = Hailo->new(%args) };
+    if ($@) {
+        chomp $@;
+        warn "$@\n";
+        return;
+    }
+
+    my $raw;
+    my $size = 4096;
+    my $filter = POE::Filter::Reference->new;
+
+    while (sysread STDIN, $raw, $size) {
+        my $requests = $filter->get([$raw]);
+        for my $req (@$requests) {
+            my $method = $req->{method};
+            $req->{result} = [$hailo->$method(@{ $req->{args} })];
+            my $response = $filter->put([$req]);
+            print @$response;
+        }
+    }
+
+    return;
+}
 
 1;
 
