@@ -7,7 +7,7 @@ use Carp 'croak';
 use Hailo;
 use POE qw(Wheel::Run Filter::Reference);
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 sub spawn {
     my ($package, %args) = @_;
