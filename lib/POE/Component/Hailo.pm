@@ -117,7 +117,7 @@ sub _sig_chld {
 
 sub _child_stderr {
     my ($kernel, $self, $input) = @_[KERNEL, OBJECT, ARG0];
-    warn "$input\n" if $self->{debug};
+    warn "$input\n";
     return;
 }
 
@@ -239,9 +239,6 @@ under L</INPUT> and emits the events listed under L</OUTPUT>.
 This is the constructor. It takes the following arguments:
 
 B<'alias'>, an optional alias for the component's session.
-
-B<'debug'>, set to a true value if you want debug output to be printed.
-Defaults to false.
 
 B<'Hailo_args'>, a hash reference of arguments to pass to L<Hailo|Hailo>'s
 constructor.
