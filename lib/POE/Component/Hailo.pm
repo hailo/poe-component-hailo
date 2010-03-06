@@ -243,6 +243,9 @@ B<'alias'>, an optional alias for the component's session.
 B<'Hailo_args'>, a hash reference of arguments to pass to L<Hailo|Hailo>'s
 constructor.
 
+B<'options'>, a hash reference of options to pass to
+L<POE::Session|POE::Session>'s constructor.
+
 =head2 C<session_id>
 
 Takes no arguments. Returns the POE Session ID of the component.

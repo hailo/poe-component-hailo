@@ -53,6 +53,9 @@ METHODS
     'Hailo_args', a hash reference of arguments to pass to Hailo's
     constructor.
 
+    'options', a hash reference of options to pass to POE::Session's
+    constructor.
+
   "session_id"
     Takes no arguments. Returns the POE Session ID of the component.
 
