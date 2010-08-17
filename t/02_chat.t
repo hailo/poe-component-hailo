@@ -1,5 +1,5 @@
 use strict;
-use warnings;
+use warnings FATAL => 'all';
 use Test::More tests => 2;
 use POE qw(Component::Hailo);
 

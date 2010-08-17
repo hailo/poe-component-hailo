@@ -2,7 +2,7 @@ package POE::Component::Hailo;
 
 use 5.010;
 use strict;
-use warnings;
+use warnings FATAL => 'all';
 use Carp 'croak';
 use Hailo;
 use POE qw(Wheel::Run Filter::Reference);
